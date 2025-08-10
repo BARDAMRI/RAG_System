@@ -32,6 +32,35 @@ if os.path.exists(INDEX_PATH):
         print(f"Failed to load FAISS index: {e}")
 
 
+@app.get("/health", summary="Health check for uptime and readiness probes")
+async def health_check():
+    """Lightweight health endpoint.
+    - Returns API availability
+    - Indicates whether a FAISS index directory exists
+    - Optionally checks if the local Ollama server is reachable
+    """
+    # Base API status
+    api_ok = True
+
+    # Check FAISS index presence on disk
+    faiss_index_exists = os.path.exists(INDEX_PATH)
+
+    # Try to reach local Ollama (no external dependency; use stdlib)
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/version", timeout=0.5) as resp:
+            ollama_ok = (200 <= resp.status < 300)
+    except Exception:
+        ollama_ok = False
+
+    status = "ok" if api_ok else "degraded"
+    return {
+        "status": status,
+        "ollama": ollama_ok,
+        "faiss_index_exists": faiss_index_exists
+    }
+
+
 def process_excel(file_content: io.BytesIO, source_name: str) -> tuple[List[str], List[dict]]:
     """
     Process an Excel file and extract text content and metadata.
