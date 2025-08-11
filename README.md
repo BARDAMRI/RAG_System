@@ -11,7 +11,7 @@ answer questions based on retrieved context.
 - **Python**: 3.10+
 - **Operating System**: macOS, Windows, or Linux
 - **Ollama**: Installed and running with the Llama 3 model pulled
-- **RAM**: Minimum 4GB (8GB recommended for larger datasets)
+- **RAM**: Minimum 4GB (For larger datasets I recommended 8GB )
 
 ---
 
@@ -48,9 +48,11 @@ This project implements a standard RAG pipeline:
 ### Install & Set Up Ollama
 
 Your server needs a local LLM via [Ollama](https://ollama.com).
+Follow the instructions on their website to install Ollama for your OS.
+Download & install Ollama (macOS, Windows, or Linux)
 
+After installation, ensure Ollama is running and the Llama 3 model is pulled:
 ```bash
-# Download & install Ollama (macOS, Windows, or Linux)
 # Then run Ollama (macOS/Windows auto-start; Linux use:)
 ollama serve
 
