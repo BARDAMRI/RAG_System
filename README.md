@@ -107,26 +107,27 @@ curl -X POST "http://localhost:8000/ingest" \
 
 ### 2. Query the System
 
-**Hebrew Example**
-
+#### Query example 1
 ```bash
 curl -X POST "http://localhost:8000/query" \
   -H "Content-Type: application/json" \
-  -d '{"question": "מי עובד במיקרוסופט?"}'
+  -d '{"question": "What is Yoav Levi role at the company?", "top_k": 2}'
 ```
 
 **Output:**
 
 ```json
 {
-  "answer": "על פי המסמכים, צ'רלי הוא מהנדס תוכנה במיקרוסופט.",
-  "sources": [
-    "sample.xlsx (excel index 2)"
-  ]
+    "answer": "According to the provided context, Yoav Levi's role is that of a Software Architect. He designs the microservices architecture and oversees the implementation of cloud solutions.",
+    "sources": [
+        "sample.xlsx (excel index 4)",
+        "sample.xlsx (excel index 2)",
+        "sample.xlsx (excel index 2)"
+    ]
 }
 ```
 
-**English Example**
+#### Query example 2
 
 ```bash
 curl -X POST "http://localhost:8000/query" \
@@ -141,6 +142,70 @@ curl -X POST "http://localhost:8000/query" \
   "answer": "RAG, or Retrieval-Augmented Generation, is a system that combines retrieval and language generation to answer queries from stored documents.",
   "sources": [
     "sample.docx (docx index 1)"
+  ]
+}
+```
+
+#### Query example 3
+
+```bash
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Who founded QuantumFlow AI Solutions and what is their role in the company?", "top_k": 2}'
+```
+
+**Output:**
+
+```json
+{
+  "answer": "According to the provided context, QuantumFlow AI Solutions was founded by Bar Damri, who serves as both the CEO (Chief Executive Officer) and Chief Technology Officer (CTO).",
+  "sources": [
+    "sample.docx (docx index 1)",
+    "sample.xlsx (excel index 2)",
+    "sample.docx (docx index 6)"
+  ]
+}
+```
+
+
+#### Query example 4
+
+```bash
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the vision of QuantumFlow AI Solutions?", "top_k": 2}'
+```
+
+**Output:**
+
+```json
+{
+  "answer": "According to the provided context, the vision of QuantumFlow AI Solutions is \"to bridge the gap between theoretical AI research and practical, profitable business applications.\"",
+  "sources": [
+    "sample.docx (docx index 1)",
+    "sample.xlsx (excel index 2)",
+    "sample.docx (docx index 6)"
+  ]
+}
+```
+
+#### Query example 5
+
+```bash
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What technologies are used for full-stack development at QuantumFlow AI Solutions?", "top_k": 2}'
+```
+
+**Output:**
+
+```json
+{
+  "answer": "According to the provided context, QuantumFlow AI Solutions has \"Full-stack Development\" capabilities, which means they can develop end-to-end solutions from client-side to server-side. However, it does not specify the exact technologies used for full-stack development.\n\nTherefore, I cannot provide a specific answer to this question based on the given context.",
+  "sources": [
+    "sample.docx (docx index 1)",
+    "sample.xlsx (excel index 2)",
+    "sample.docx (docx index 6)"
   ]
 }
 ```
