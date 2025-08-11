@@ -16,7 +16,17 @@ app = FastAPI(
     description="Demonstration implementation of a retrieval-augmented generation system."
 )
 
-# Initialize global variables
+
+class QueryRequest(BaseModel):
+    question: str
+    top_k: Optional[int] = 3
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: List[str]
+
+
 documents = []
 vector_store = None
 INDEX_PATH = "faiss_index"
@@ -34,10 +44,10 @@ if os.path.exists(INDEX_PATH):
 
 @app.get("/health", summary="Health check for uptime and readiness probes")
 async def health_check():
-    """Lightweight health endpoint.
-    - Returns API availability
-    - Indicates whether a FAISS index directory exists
-    - Optionally checks if the local Ollama server is reachable
+    """Endpoint ment to examine the server ability to apply API calls.
+    I used it mainly for readiness and liveness probes.
+    Returns:
+        dict: A dictionary containing the status of the API, Ollama service, and FAISS index presence.
     """
     # Base API status
     api_ok = True
@@ -45,7 +55,7 @@ async def health_check():
     # Check FAISS index presence on disk
     faiss_index_exists = os.path.exists(INDEX_PATH)
 
-    # Try to reach local Ollama (no external dependency; use stdlib)
+    # Reach local Ollama
     try:
         import urllib.request
         with urllib.request.urlopen("http://127.0.0.1:11434/api/version", timeout=0.5) as resp:
@@ -62,9 +72,6 @@ async def health_check():
 
 
 def process_excel(file_content: io.BytesIO, source_name: str) -> tuple[List[str], List[dict]]:
-    """
-    Process an Excel file and extract text content and metadata.
-    """
     try:
         df = pd.read_excel(file_content)
         texts = []
@@ -81,9 +88,6 @@ def process_excel(file_content: io.BytesIO, source_name: str) -> tuple[List[str]
 
 
 def process_docx(file_content: io.BytesIO, source_name: str) -> tuple[List[str], List[dict]]:
-    """
-    Process a Word document and extract text content and metadata.
-    """
     try:
         doc = DocxDocument(file_content)
         texts = []
@@ -102,7 +106,7 @@ def process_docx(file_content: io.BytesIO, source_name: str) -> tuple[List[str],
 @app.post("/ingest", summary="Ingest files into the vector store")
 async def ingest_files(files: List[UploadFile] = File(...)):
     """
-    Accepts a list of uploaded files (Excel or Word) and ingests their contents into the vector store.
+    Accepts a list of files and ingests their contents into the vector store.
     """
     global vector_store, documents
     total_chunks = 0
@@ -132,35 +136,22 @@ async def ingest_files(files: List[UploadFile] = File(...)):
             vector_store = FAISS.from_texts(texts, embeddings, metadatas=metadatas)
         else:
             vector_store.add_texts(texts, metadatas=metadatas)
-        # Save the FAISS index to disk
         vector_store.save_local(INDEX_PATH)
-        # Clear documents to save memory
         documents.clear()
 
     return {"message": f"Successfully indexed {total_chunks} chunks from {len(files)} files"}
 
 
-class QueryRequest(BaseModel):
-    question: str
-    top_k: Optional[int] = 3
-
-
-class QueryResponse(BaseModel):
-    answer: str
-    sources: List[str]
-
-
 @app.post("/query", response_model=QueryResponse, summary="Query the vector store and generate an answer")
 async def query_rag(request: QueryRequest):
     """
-    Given a user question, retrieve the most relevant text fragments and generate a response using an LLM.
+    Retrieve the most relevant text fragments and generate a response using the ollama LLM.
     """
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question must not be empty")
     if vector_store is None:
         raise HTTPException(status_code=400, detail="Vector store is empty. Please ingest documents first.")
 
-    # Retrieve relevant documents
     docs = vector_store.similarity_search(request.question, k=request.top_k or 3)
 
     # Prepare context for LLM
@@ -169,7 +160,6 @@ async def query_rag(request: QueryRequest):
         f"{doc.metadata.get('source', 'unknown source')} ({doc.metadata.get('type', 'unknown')} index {doc.metadata.get('index', 'N/A')})"
         for doc in docs]
 
-    # Define prompt for LLM
     prompt_template = PromptTemplate(
         input_variables=["context", "question"],
         template=f"You are a helpful assistant. Answer the user's question only based on the following context. If "
@@ -178,7 +168,6 @@ async def query_rag(request: QueryRequest):
     )
     prompt = prompt_template.format(context=context, question=request.question)
 
-    # Generate answer using LLM
     try:
         answer = llm.invoke(prompt)
     except Exception as exc:
